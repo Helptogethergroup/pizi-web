@@ -27,8 +27,8 @@
     "docker:down": "docker-compose down"
   },
   "devDependencies": {
-    "concurrently": "^9.1.2",
-    "typescript": "^5.4.5"
+    "concurrently": "9.1.2",
+    "typescript": "5.4.5"
   },
   "packageManager": "npm@11.9.0",
   "engines": {
