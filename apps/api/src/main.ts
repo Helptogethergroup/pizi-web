@@ -1,3 +1,4 @@
+import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -6,12 +7,17 @@ import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
 
+
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
     logger: ['error', 'warn', 'log', 'debug'],
   });
 
   const config = app.get(ConfigService);
+  console.log('JWT_SECRET =', config.get('JWT_SECRET'));
+console.log('DATABASE_URL =', config.get('DATABASE_URL'));
+
+
   const port = config.get<number>('PORT', 4000);
 
   // Global API prefix
