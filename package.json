@@ -1,0 +1,38 @@
+{
+  "name": "pizi-platform",
+  "version": "1.0.0",
+  "private": true,
+  "description": "PIZI - PG Aggregator Platform (Node + Next.js)",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently -n web,api -c cyan,magenta \"npm run dev:web\" \"npm run dev:api\"",
+    "dev:web": "npm run dev -w @pizi/web",
+    "dev:api": "npm run dev -w @pizi/api",
+    "build": "npm run build:web",
+    "build:all": "npm run build:web && npm run build:api",
+    "build:web": "npm run build -w @pizi/web",
+    "build:api": "npm run build -w @pizi/api",
+    "start": "concurrently -n web,api -c cyan,magenta \"npm run start -w @pizi/web\" \"npm run start -w @pizi/api\"",
+    "start:web": "npm run start -w @pizi/web",
+    "start:api": "npm run start -w @pizi/api",
+    "lint": "npm run lint --workspaces --if-present",
+    "db:generate": "npm run prisma:generate -w @pizi/api",
+    "db:migrate": "npm run prisma:migrate -w @pizi/api",
+    "db:push": "npm run prisma:push -w @pizi/api",
+    "db:studio": "npm run prisma:studio -w @pizi/api",
+    "db:seed": "npm run prisma:seed -w @pizi/api",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2",
+    "typescript": "^5.4.5"
+  },
+  "packageManager": "npm@11.9.0",
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

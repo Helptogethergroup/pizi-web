@@ -1,0 +1,1118 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                                                         BigInt                @id @default(autoincrement()) @db.UnsignedBigInt
+  name                                                       String                @db.VarChar(255)
+  email                                                      String                @unique(map: "users_email_unique") @db.VarChar(255)
+  phone                                                      String?               @db.VarChar(15)
+  emailVerifiedAt                                            DateTime?             @map("email_verified_at") @db.Timestamp(0)
+  password                                                   String                @db.VarChar(255)
+  role                                                       users_role            @default(guest)
+  isActive                                                   Boolean               @default(true) @map("is_active")
+  avatar                                                     String?               @db.VarChar(255)
+  remember_token                                             String?               @db.VarChar(100)
+  createdAt                                                  DateTime?             @map("created_at") @db.Timestamp(0)
+  updatedAt                                                  DateTime?             @updatedAt @map("updated_at") @db.Timestamp(0)
+  blogs                                                      blogs[]
+  lead_unlocks                                               lead_unlocks[]
+  leads_leads_assigned_field_executive_idTousers             Lead[]                @relation("leads_assigned_field_executive_idTousers")
+  leads_leads_assigned_telecaller_idTousers                  Lead[]                @relation("leads_assigned_telecaller_idTousers")
+  leads_leads_created_by_user_idTousers                      Lead[]                @relation("leads_created_by_user_idTousers")
+  leads_leads_locked_by_user_idTousers                       Lead[]                @relation("leads_locked_by_user_idTousers")
+  payments                                                   payments[]
+  properties                                                 Property[]
+  reviews                                                    reviews[]
+  visits                                                     visits[]
+  wallet_transactions_wallet_transactions_actioned_byTousers wallet_transactions[] @relation("wallet_transactions_actioned_byTousers")
+  wallet_transactions_wallet_transactions_user_idTousers     wallet_transactions[] @relation("wallet_transactions_user_idTousers")
+  wallets                                                    wallets?
+  wishlists                                                  wishlists[]
+
+  @@index([phone], map: "users_phone_index")
+  @@index([role], map: "users_role_index")
+  @@map("users")
+}
+
+model OtpVerification {
+  id              BigInt                            @id @default(autoincrement()) @db.UnsignedBigInt
+  identifier      String                            @db.VarChar(150)
+  identifier_type otp_verifications_identifier_type
+  otp             String                            @db.VarChar(10)
+  purpose         otp_verifications_purpose         @default(login)
+  attempts        Int                               @default(0)
+  verified        Boolean                           @default(false)
+  verifiedAt      DateTime?                         @map("verified_at") @db.Timestamp(0)
+  expiresAt       DateTime                          @default(dbgenerated("('0000-00-00 00:00:00')")) @map("expires_at") @db.Timestamp(0)
+  ip_address      String?                           @db.VarChar(50)
+  user_agent      String?                           @db.Text
+  createdAt       DateTime?                         @map("created_at") @db.Timestamp(0)
+  updated_at      DateTime?                         @db.Timestamp(0)
+
+  @@index([expiresAt], map: "idx_otp_expires")
+  @@index([identifier, purpose], map: "idx_otp_identifier")
+  @@map("otp_verifications")
+}
+
+model City {
+  id               BigInt      @id @default(autoincrement()) @db.UnsignedBigInt
+  name             String      @db.VarChar(255)
+  slug             String      @unique(map: "cities_slug_unique") @db.VarChar(255)
+  state            String      @default("Delhi NCR") @db.VarChar(255)
+  description      String?     @db.Text
+  meta_title       String?     @db.VarChar(255)
+  meta_description String?     @db.VarChar(320)
+  isActive         Boolean     @default(true) @map("is_active")
+  display_order    Int         @default(0)
+  createdAt        DateTime?   @map("created_at") @db.Timestamp(0)
+  updatedAt        DateTime?   @updatedAt @map("updated_at") @db.Timestamp(0)
+  landmarks        landmarks[]
+  localities       Locality[]
+  properties       Property[]
+
+  @@map("cities")
+}
+
+model Locality {
+  id               BigInt      @id @default(autoincrement()) @db.UnsignedBigInt
+  cityId           BigInt      @map("city_id") @db.UnsignedBigInt
+  name             String      @db.VarChar(255)
+  slug             String      @db.VarChar(255)
+  description      String?     @db.Text
+  latitude         Decimal?    @db.Decimal(10, 7)
+  longitude        Decimal?    @db.Decimal(10, 7)
+  meta_title       String?     @db.VarChar(255)
+  meta_description String?     @db.VarChar(320)
+  isActive         Boolean     @default(true) @map("is_active")
+  createdAt        DateTime?   @map("created_at") @db.Timestamp(0)
+  updatedAt        DateTime?   @updatedAt @map("updated_at") @db.Timestamp(0)
+  landmarks        landmarks[]
+  city             City        @relation(fields: [cityId], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "localities_city_id_foreign")
+  properties       Property[]
+
+  @@unique([cityId, slug], map: "localities_city_id_slug_unique")
+  @@map("localities")
+}
+
+model Property {
+  id                 BigInt                   @id @default(autoincrement()) @db.UnsignedBigInt
+  ownerId            BigInt?                  @map("owner_id") @db.UnsignedBigInt
+  cityId             BigInt                   @map("city_id") @db.UnsignedBigInt
+  localityId         BigInt                   @map("locality_id") @db.UnsignedBigInt
+  name               String                   @db.VarChar(255)
+  slug               String                   @unique(map: "properties_slug_unique") @db.VarChar(255)
+  description        String?                  @db.Text
+  rules              String?                  @db.Text
+  gender             properties_gender        @default(unisex)
+  propertyType       properties_property_type @default(pg) @map("property_type")
+  rent_min           Decimal                  @db.Decimal(10, 2)
+  rent_max           Decimal                  @db.Decimal(10, 2)
+  securityDeposit    Decimal                  @default(0.00) @map("security_deposit") @db.Decimal(10, 2)
+  food_included      Boolean                  @default(false)
+  sharing_options    String?                  @db.LongText
+  addressLine        String                   @map("address_line") @db.VarChar(255)
+  landmark           String?                  @db.VarChar(255)
+  pincode            String?                  @db.VarChar(10)
+  latitude           Decimal?                 @db.Decimal(10, 7)
+  longitude          Decimal?                 @db.Decimal(10, 7)
+  google_map_link    String?                  @db.Text
+  is_active          Boolean                  @default(true)
+  isVerified         Boolean                  @default(false) @map("is_verified")
+  isFeatured         Boolean                  @default(false) @map("is_featured")
+  totalRooms         Int                      @default(0) @map("total_rooms")
+  available_rooms    Int                      @default(0)
+  meta_title         String?                  @db.VarChar(255)
+  meta_description   String?                  @db.VarChar(320)
+  cover_image        String?                  @db.VarChar(255)
+  view_count         BigInt                   @default(0) @db.UnsignedBigInt
+  lead_count         BigInt                   @default(0) @db.UnsignedBigInt
+  createdAt          DateTime?                @map("created_at") @db.Timestamp(0)
+  updatedAt          DateTime?                @updatedAt @map("updated_at") @db.Timestamp(0)
+  deleted_at         DateTime?                @db.Timestamp(0)
+  leads              Lead[]
+  city               City                     @relation(fields: [cityId], references: [id], onUpdate: Restrict, map: "properties_city_id_foreign")
+  locality           Locality                 @relation(fields: [localityId], references: [id], onUpdate: Restrict, map: "properties_locality_id_foreign")
+  owner              User?                    @relation(fields: [ownerId], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "properties_owner_id_foreign")
+  amenities          PropertyAmenity[]
+  images             PropertyImage[]
+  property_landmarks property_landmarks[]
+  reviews            reviews[]
+  visits             visits[]
+  wishlists          wishlists[]
+
+  @@index([cityId, localityId, is_active], map: "properties_city_id_locality_id_is_active_index")
+  @@index([gender], map: "properties_gender_index")
+  @@index([gender, is_active], map: "properties_gender_is_active_index")
+  @@index([is_active], map: "properties_is_active_index")
+  @@index([isFeatured], map: "properties_is_featured_index")
+  @@index([isVerified], map: "properties_is_verified_index")
+  @@index([localityId], map: "properties_locality_id_foreign")
+  @@index([ownerId], map: "properties_owner_id_foreign")
+  @@index([propertyType], map: "properties_property_type_index")
+  @@map("properties")
+}
+
+model PropertyImage {
+  id            BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  propertyId    BigInt    @map("property_id") @db.UnsignedBigInt
+  image_path    String    @db.VarChar(255)
+  caption       String?   @db.VarChar(255)
+  display_order Int       @default(0)
+  createdAt     DateTime? @map("created_at") @db.Timestamp(0)
+  updatedAt     DateTime? @updatedAt @map("updated_at") @db.Timestamp(0)
+  property      Property  @relation(fields: [propertyId], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "property_images_property_id_foreign")
+
+  @@index([propertyId], map: "property_images_property_id_foreign")
+  @@map("property_images")
+}
+
+model Amenity {
+  id         BigInt            @id @default(autoincrement()) @db.UnsignedBigInt
+  name       String            @db.VarChar(255)
+  slug       String            @unique(map: "amenities_slug_unique") @db.VarChar(255)
+  icon       String?           @db.VarChar(255)
+  createdAt  DateTime?         @map("created_at") @db.Timestamp(0)
+  updatedAt  DateTime?         @updatedAt @map("updated_at") @db.Timestamp(0)
+  properties PropertyAmenity[]
+
+  @@map("amenities")
+}
+
+model PropertyAmenity {
+  propertyId BigInt   @map("property_id") @db.UnsignedBigInt
+  amenityId  BigInt   @map("amenity_id") @db.UnsignedBigInt
+  amenity    Amenity  @relation(fields: [amenityId], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "property_amenities_amenity_id_foreign")
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "property_amenities_property_id_foreign")
+
+  @@id([propertyId, amenityId])
+  @@index([amenityId], map: "property_amenities_amenity_id_foreign")
+  @@map("property_amenities")
+}
+
+model Tenant {
+  id                BigInt          @id @default(autoincrement()) @db.UnsignedBigInt
+  propertyId        BigInt          @map("property_id") @db.UnsignedBigInt
+  ownerId           BigInt          @map("owner_id") @db.UnsignedBigInt
+  userId            BigInt?         @map("user_id") @db.UnsignedBigInt
+  name              String          @db.VarChar(200)
+  phone             String          @db.VarChar(20)
+  email             String?         @db.VarChar(150)
+  dob               DateTime?       @db.Date
+  gender            tenants_gender?
+  occupation        String?         @db.VarChar(100)
+  companyCollege    String?         @map("company_college") @db.VarChar(200)
+  addressLine       String?         @map("address_line") @db.Text
+  city              String?         @db.VarChar(100)
+  state             String?         @db.VarChar(100)
+  pincode           String?         @db.VarChar(10)
+  emergencyName     String?         @map("emergency_name") @db.VarChar(200)
+  emergencyPhone    String?         @map("emergency_phone") @db.VarChar(20)
+  emergencyRelation String?         @map("emergency_relation") @db.VarChar(50)
+  roomNumber        String?         @map("room_number") @db.VarChar(50)
+  bedNumber         String?         @map("bed_number") @db.VarChar(20)
+  monthlyRent       Decimal?        @default(0.00) @map("monthly_rent") @db.Decimal(10, 2)
+  securityDeposit   Decimal?        @default(0.00) @map("security_deposit") @db.Decimal(10, 2)
+  moveInDate        DateTime?       @map("move_in_date") @db.Date
+  moveOutDate       DateTime?       @map("move_out_date") @db.Date
+  kycStatus         KycStatus?      @default(pending) @map("kyc_status")
+  kycRemarks        String?         @map("kyc_remarks") @db.Text
+  status            TenantStatus?   @default(active)
+  notes             String?         @db.Text
+  createdAt         DateTime?       @map("created_at") @db.Timestamp(0)
+  updatedAt         DateTime?       @updatedAt @map("updated_at") @db.Timestamp(0)
+
+  @@index([ownerId], map: "idx_tenants_owner")
+  @@index([propertyId], map: "idx_tenants_property")
+  @@index([status, kycStatus], map: "idx_tenants_status")
+  @@map("tenants")
+}
+
+model TenantDocument {
+  id             BigInt       @id @default(autoincrement()) @db.UnsignedBigInt
+  tenantId       BigInt       @map("tenant_id") @db.UnsignedBigInt
+  documentType   DocumentType @map("document_type")
+  filePath       String       @map("file_path") @db.VarChar(500)
+  documentNumber String?      @map("document_number") @db.VarChar(50)
+  verified       Boolean?     @default(false)
+  verified_at    DateTime?    @db.Timestamp(0)
+  createdAt      DateTime?    @map("created_at") @db.Timestamp(0)
+  updatedAt      DateTime?    @updatedAt @map("updated_at") @db.Timestamp(0)
+
+  @@index([tenantId], map: "idx_tenant_docs_tenant")
+  @@map("tenant_documents")
+}
+
+model RentBill {
+  id                BigInt      @id @default(autoincrement()) @db.UnsignedBigInt
+  tenantId          BigInt      @map("tenant_id") @db.UnsignedBigInt
+  propertyId        BigInt      @map("property_id") @db.UnsignedBigInt
+  ownerId           BigInt      @map("owner_id") @db.UnsignedBigInt
+  billNumber        String      @map("bill_number") @db.VarChar(50)
+  month             String      @db.VarChar(7)
+  rentAmount        Decimal     @default(0.00) @map("rent_amount") @db.Decimal(10, 2)
+  electricity       Decimal?    @default(0.00) @db.Decimal(10, 2)
+  water             Decimal?    @default(0.00) @db.Decimal(10, 2)
+  maintenance       Decimal?    @default(0.00) @db.Decimal(10, 2)
+  foodCharges       Decimal?    @default(0.00) @map("food_charges") @db.Decimal(10, 2)
+  otherCharges      Decimal?    @default(0.00) @map("other_charges") @db.Decimal(10, 2)
+  otherChargesLabel String?     @map("other_charges_label") @db.VarChar(100)
+  lateFee           Decimal?    @default(0.00) @map("late_fee") @db.Decimal(10, 2)
+  discount          Decimal?    @default(0.00) @db.Decimal(10, 2)
+  totalAmount       Decimal     @default(0.00) @map("total_amount") @db.Decimal(10, 2)
+  paidAmount        Decimal?    @default(0.00) @map("paid_amount") @db.Decimal(10, 2)
+  dueAmount         Decimal?    @default(0.00) @map("due_amount") @db.Decimal(10, 2)
+  dueDate           DateTime    @map("due_date") @db.Date
+  status            BillStatus? @default(pending)
+  notes             String?     @db.Text
+  createdAt         DateTime?   @map("created_at") @db.Timestamp(0)
+  updatedAt         DateTime?   @updatedAt @map("updated_at") @db.Timestamp(0)
+
+  @@unique([tenantId, month], map: "uk_tenant_month")
+  @@index([ownerId], map: "idx_bills_owner")
+  @@index([status, dueDate], map: "idx_bills_status")
+  @@map("rent_bills")
+}
+
+model RentPayment {
+  id             BigInt        @id @default(autoincrement()) @db.UnsignedBigInt
+  rentBillId     BigInt        @map("rent_bill_id") @db.UnsignedBigInt
+  tenantId       BigInt        @map("tenant_id") @db.UnsignedBigInt
+  ownerId        BigInt        @map("owner_id") @db.UnsignedBigInt
+  receiptNumber  String        @unique(map: "uk_receipt") @map("receipt_number") @db.VarChar(50)
+  amount         Decimal       @db.Decimal(10, 2)
+  paymentMethod  PaymentMethod @default(cash) @map("payment_method")
+  transactionRef String?       @map("transaction_ref") @db.VarChar(100)
+  paidAt         DateTime      @map("paid_at") @db.DateTime(0)
+  receivedById   BigInt?       @map("received_by_id") @db.UnsignedBigInt
+  notes          String?       @db.Text
+  createdAt      DateTime?     @map("created_at") @db.Timestamp(0)
+  updatedAt      DateTime?     @updatedAt @map("updated_at") @db.Timestamp(0)
+
+  @@index([rentBillId], map: "idx_payments_bill")
+  @@index([tenantId], map: "idx_payments_tenant")
+  @@map("rent_payments")
+}
+
+model Complaint {
+  id              BigInt            @id @default(autoincrement()) @db.UnsignedBigInt
+  ticketNumber    String            @unique(map: "uk_ticket") @map("ticket_number") @db.VarChar(50)
+  tenantId        BigInt            @map("tenant_id") @db.UnsignedBigInt
+  propertyId      BigInt            @map("property_id") @db.UnsignedBigInt
+  ownerId         BigInt            @map("owner_id") @db.UnsignedBigInt
+  category        ComplaintCategory
+  priority        Priority?         @default(medium)
+  title           String            @db.VarChar(200)
+  description     String?           @db.Text
+  status          ComplaintStatus?  @default(open)
+  assignedToId    BigInt?           @map("assigned_to_id") @db.UnsignedBigInt
+  assignedToName  String?           @map("assigned_to_name") @db.VarChar(200)
+  assignedToPhone String?           @map("assigned_to_phone") @db.VarChar(20)
+  assignedAt      DateTime?         @map("assigned_at") @db.DateTime(0)
+  resolvedAt      DateTime?         @map("resolved_at") @db.DateTime(0)
+  resolutionNotes String?           @map("resolution_notes") @db.Text
+  rating          Boolean?
+  feedback        String?           @db.Text
+  createdAt       DateTime?         @map("created_at") @db.Timestamp(0)
+  updatedAt       DateTime?         @updatedAt @map("updated_at") @db.Timestamp(0)
+
+  @@index([ownerId, status], map: "idx_complaints_owner")
+  @@index([status, priority], map: "idx_complaints_status")
+  @@index([tenantId], map: "idx_complaints_tenant")
+  @@map("complaints")
+}
+
+model ComplaintMedia {
+  id           BigInt                     @id @default(autoincrement()) @db.UnsignedBigInt
+  complaintId  BigInt                     @map("complaint_id") @db.UnsignedBigInt
+  mediaType    complaint_media_media_type @default(photo) @map("media_type")
+  filePath     String                     @map("file_path") @db.VarChar(500)
+  uploadedById BigInt?                    @map("uploaded_by_id") @db.UnsignedBigInt
+  createdAt    DateTime?                  @map("created_at") @db.Timestamp(0)
+  updatedAt    DateTime?                  @updatedAt @map("updated_at") @db.Timestamp(0)
+
+  @@index([complaintId], map: "idx_complaint_media")
+  @@map("complaint_media")
+}
+
+model ComplaintComment {
+  id          BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  complaintId BigInt    @map("complaint_id") @db.UnsignedBigInt
+  userId      BigInt?   @map("user_id") @db.UnsignedBigInt
+  authorName  String    @map("author_name") @db.VarChar(150)
+  authorRole  String?   @default("owner") @map("author_role") @db.VarChar(50)
+  comment     String    @db.Text
+  isInternal  Boolean?  @default(false) @map("is_internal")
+  createdAt   DateTime? @map("created_at") @db.Timestamp(0)
+  updatedAt   DateTime? @updatedAt @map("updated_at") @db.Timestamp(0)
+
+  @@index([complaintId], map: "idx_comments_complaint")
+  @@map("complaint_comments")
+}
+
+model Room {
+  id                  BigInt      @id @default(autoincrement()) @db.UnsignedBigInt
+  propertyId          BigInt      @map("property_id") @db.UnsignedBigInt
+  ownerId             BigInt      @map("owner_id") @db.UnsignedBigInt
+  roomNumber          String      @map("room_number") @db.VarChar(50)
+  floor               String?     @db.VarChar(50)
+  roomType            RoomType?   @default(double) @map("room_type")
+  gender              GenderType? @default(unisex)
+  monthlyRent         Decimal?    @default(0.00) @map("monthly_rent") @db.Decimal(10, 2)
+  securityDeposit     Decimal?    @default(0.00) @map("security_deposit") @db.Decimal(10, 2)
+  hasAc               Boolean?    @default(false) @map("has_ac")
+  hasAttachedBathroom Boolean?    @default(false) @map("has_attached_bathroom")
+  hasBalcony          Boolean?    @default(false) @map("has_balcony")
+  hasGeyser           Boolean?    @default(false) @map("has_geyser")
+  hasWifi             Boolean?    @default(true) @map("has_wifi")
+  notes               String?     @db.Text
+  status              RoomStatus? @default(active)
+  createdAt           DateTime?   @map("created_at") @db.Timestamp(0)
+  updatedAt           DateTime?   @updatedAt @map("updated_at") @db.Timestamp(0)
+
+  @@unique([propertyId, roomNumber], map: "uk_property_room")
+  @@index([ownerId], map: "idx_rooms_owner")
+  @@map("rooms")
+}
+
+model Bed {
+  id            BigInt     @id @default(autoincrement()) @db.UnsignedBigInt
+  roomId        BigInt     @map("room_id") @db.UnsignedBigInt
+  propertyId    BigInt     @map("property_id") @db.UnsignedBigInt
+  ownerId       BigInt     @map("owner_id") @db.UnsignedBigInt
+  bedNumber     String     @map("bed_number") @db.VarChar(20)
+  bedType       BedType?   @default(single) @map("bed_type")
+  monthlyRent   Decimal?   @default(0.00) @map("monthly_rent") @db.Decimal(10, 2)
+  status        BedStatus? @default(vacant)
+  tenantId      BigInt?    @map("tenant_id") @db.UnsignedBigInt
+  occupiedSince DateTime?  @map("occupied_since") @db.Date
+  notes         String?    @db.Text
+  createdAt     DateTime?  @map("created_at") @db.Timestamp(0)
+  updatedAt     DateTime?  @updatedAt @map("updated_at") @db.Timestamp(0)
+
+  @@unique([roomId, bedNumber], map: "uk_room_bed")
+  @@index([status], map: "idx_beds_status")
+  @@index([tenantId], map: "idx_beds_tenant")
+  @@map("beds")
+}
+
+model RentAgreement {
+  id                  BigInt                          @id @default(autoincrement()) @db.UnsignedBigInt
+  agreementNumber     String                          @unique(map: "uk_agreement_number") @map("agreement_number") @db.VarChar(50)
+  tenantId            BigInt                          @map("tenant_id") @db.UnsignedBigInt
+  propertyId          BigInt                          @map("property_id") @db.UnsignedBigInt
+  ownerId             BigInt                          @map("owner_id") @db.UnsignedBigInt
+  roomNumber          String?                         @map("room_number") @db.VarChar(50)
+  bedNumber           String?                         @map("bed_number") @db.VarChar(20)
+  monthlyRent         Decimal                         @default(0.00) @map("monthly_rent") @db.Decimal(10, 2)
+  securityDeposit     Decimal                         @default(0.00) @map("security_deposit") @db.Decimal(10, 2)
+  maintenanceFee      Decimal?                        @default(0.00) @map("maintenance_fee") @db.Decimal(10, 2)
+  electricityIncluded Boolean?                        @default(false) @map("electricity_included")
+  waterIncluded       Boolean?                        @default(true) @map("water_included")
+  foodIncluded        Boolean?                        @default(false) @map("food_included")
+  startDate           DateTime                        @map("start_date") @db.Date
+  endDate             DateTime                        @map("end_date") @db.Date
+  lockInMonths        Int?                            @default(3) @map("lock_in_months")
+  noticePeriodDays    Int?                            @default(30) @map("notice_period_days")
+  rentDueDay          Int?                            @default(5) @map("rent_due_day")
+  termsTemplate       rent_agreements_terms_template? @default(delhi_standard) @map("terms_template")
+  additionalTerms     String?                         @map("additional_terms") @db.Text
+  houseRules          String?                         @map("house_rules") @db.Text
+  status              AgreementStatus?                @default(draft)
+  signedAt            DateTime?                       @map("signed_at") @db.DateTime(0)
+  terminatedAt        DateTime?                       @map("terminated_at") @db.DateTime(0)
+  terminationReason   String?                         @map("termination_reason") @db.Text
+  parentAgreementId   BigInt?                         @map("parent_agreement_id") @db.UnsignedBigInt
+  renewalRemindedAt   DateTime?                       @map("renewal_reminded_at") @db.DateTime(0)
+  notes               String?                         @db.Text
+  createdAt           DateTime?                       @map("created_at") @db.Timestamp(0)
+  updatedAt           DateTime?                       @updatedAt @map("updated_at") @db.Timestamp(0)
+
+  @@index([ownerId], map: "idx_agreements_owner")
+  @@index([status, endDate], map: "idx_agreements_status")
+  @@index([tenantId], map: "idx_agreements_tenant")
+  @@map("rent_agreements")
+}
+
+model AgreementSignature {
+  id            BigInt                           @id @default(autoincrement()) @db.UnsignedBigInt
+  agreementId   BigInt                           @map("agreement_id") @db.UnsignedBigInt
+  signerType    agreement_signatures_signer_type @map("signer_type")
+  signerName    String                           @map("signer_name") @db.VarChar(200)
+  signerId      BigInt?                          @map("signer_id") @db.UnsignedBigInt
+  signatureData String?                          @map("signature_data") @db.Text
+  ipAddress     String?                          @map("ip_address") @db.VarChar(50)
+  userAgent     String?                          @map("user_agent") @db.VarChar(255)
+  signedAt      DateTime                         @map("signed_at") @db.DateTime(0)
+  createdAt     DateTime?                        @map("created_at") @db.Timestamp(0)
+  updatedAt     DateTime?                        @updatedAt @map("updated_at") @db.Timestamp(0)
+
+  @@index([agreementId], map: "idx_sig_agreement")
+  @@map("agreement_signatures")
+}
+
+model Notification {
+  id              String    @id @db.Char(36)
+  type            String    @db.VarChar(255)
+  notifiable_type String    @db.VarChar(255)
+  notifiable_id   BigInt    @db.UnsignedBigInt
+  data            String    @db.Text
+  readAt          DateTime? @map("read_at") @db.Timestamp(0)
+  createdAt       DateTime? @map("created_at") @db.Timestamp(0)
+  updatedAt       DateTime? @updatedAt @map("updated_at") @db.Timestamp(0)
+
+  @@index([notifiable_type, notifiable_id], map: "notifications_notifiable_type_notifiable_id_index")
+  @@map("notifications")
+}
+
+model Lead {
+  id                                             BigInt                  @id @default(autoincrement()) @db.UnsignedBigInt
+  property_id                                    BigInt?                 @db.UnsignedBigInt
+  assigned_telecaller_id                         BigInt?                 @db.UnsignedBigInt
+  assigned_field_executive_id                    BigInt?                 @db.UnsignedBigInt
+  created_by_user_id                             BigInt?                 @db.UnsignedBigInt
+  name                                           String                  @db.VarChar(255)
+  phone                                          String                  @db.VarChar(15)
+  email                                          String?                 @db.VarChar(255)
+  preferred_locality                             String?                 @db.VarChar(255)
+  preferred_city                                 String?                 @db.VarChar(255)
+  preferred_gender                               leads_preferred_gender?
+  budgetMin                                      Decimal?                @map("budget_min") @db.Decimal(10, 2)
+  budgetMax                                      Decimal?                @map("budget_max") @db.Decimal(10, 2)
+  moveInDate                                     DateTime?               @map("move_in_date") @db.Date
+  message                                        String?                 @db.Text
+  source                                         leads_source?           @default(website)
+  lead_type                                      leads_lead_type         @default(direct)
+  is_locked                                      Boolean                 @default(false)
+  locked_by_user_id                              BigInt?                 @db.UnsignedBigInt
+  status                                         leads_status            @default(new)
+  telecaller_notes                               String?                 @db.Text
+  lastContactedAt                                DateTime?               @map("last_contacted_at") @db.Timestamp(0)
+  next_follow_up_at                              DateTime?               @db.Timestamp(0)
+  createdAt                                      DateTime?               @map("created_at") @db.Timestamp(0)
+  updatedAt                                      DateTime?               @updatedAt @map("updated_at") @db.Timestamp(0)
+  deleted_at                                     DateTime?               @db.Timestamp(0)
+  lead_unlocks                                   lead_unlocks[]
+  users_leads_assigned_field_executive_idTousers User?                   @relation("leads_assigned_field_executive_idTousers", fields: [assigned_field_executive_id], references: [id], onUpdate: Restrict, map: "leads_assigned_field_executive_id_foreign")
+  users_leads_assigned_telecaller_idTousers      User?                   @relation("leads_assigned_telecaller_idTousers", fields: [assigned_telecaller_id], references: [id], onUpdate: Restrict, map: "leads_assigned_telecaller_id_foreign")
+  users_leads_created_by_user_idTousers          User?                   @relation("leads_created_by_user_idTousers", fields: [created_by_user_id], references: [id], onUpdate: Restrict, map: "leads_created_by_user_id_foreign")
+  users_leads_locked_by_user_idTousers           User?                   @relation("leads_locked_by_user_idTousers", fields: [locked_by_user_id], references: [id], onUpdate: Restrict, map: "leads_locked_by_user_id_foreign")
+  properties                                     Property?               @relation(fields: [property_id], references: [id], onUpdate: Restrict, map: "leads_property_id_foreign")
+  visits                                         visits[]
+  wallet_transactions                            wallet_transactions[]
+
+  @@index([assigned_field_executive_id], map: "leads_assigned_field_executive_id_foreign")
+  @@index([assigned_telecaller_id], map: "leads_assigned_telecaller_id_foreign")
+  @@index([created_by_user_id], map: "leads_created_by_user_id_foreign")
+  @@index([lead_type], map: "leads_lead_type_index")
+  @@index([locked_by_user_id], map: "leads_locked_by_user_id_foreign")
+  @@index([phone], map: "leads_phone_index")
+  @@index([property_id], map: "leads_property_id_foreign")
+  @@index([source], map: "leads_source_index")
+  @@index([status, createdAt], map: "leads_status_created_at_index")
+  @@index([status], map: "leads_status_index")
+  @@map("leads")
+}
+
+model FieldVisit {
+  id                 BigInt                  @id @default(autoincrement()) @db.UnsignedBigInt
+  propertyId         BigInt                  @map("property_id") @db.UnsignedBigInt
+  field_executive_id BigInt                  @db.UnsignedBigInt
+  assigned_by_id     BigInt?                 @db.UnsignedBigInt
+  visitType          field_visits_visit_type @default(verification) @map("visit_type")
+  status             field_visits_status     @default(scheduled)
+  scheduledAt        DateTime                @map("scheduled_at") @db.DateTime(0)
+  started_at         DateTime?               @db.DateTime(0)
+  completed_at       DateTime?               @db.DateTime(0)
+  address_verified   Boolean?                @default(false)
+  amenities_verified Boolean?                @default(false)
+  rooms_verified     Boolean?                @default(false)
+  safety_verified    Boolean?                @default(false)
+  checkInLat         Decimal?                @map("check_in_lat") @db.Decimal(10, 7)
+  checkInLng         Decimal?                @map("check_in_lng") @db.Decimal(10, 7)
+  check_out_lat      Decimal?                @db.Decimal(10, 7)
+  check_out_lng      Decimal?                @db.Decimal(10, 7)
+  remarks            String?                 @db.Text
+  admin_remarks      String?                 @db.Text
+  createdAt          DateTime?               @map("created_at") @db.Timestamp(0)
+  updatedAt          DateTime?               @updatedAt @map("updated_at") @db.Timestamp(0)
+  outcome            String?                 @db.VarChar(255)
+  checkedInAt        DateTime?               @map("checked_in_at") @db.Timestamp(0)
+  checkedOutAt       DateTime?               @map("checked_out_at") @db.Timestamp(0)
+  token_amount       Decimal?                @default(0.00) @db.Decimal(10, 2)
+
+  @@index([field_executive_id, status], map: "idx_field_visits_executive")
+  @@index([propertyId], map: "idx_field_visits_property")
+  @@map("field_visits")
+}
+
+model blogs {
+  id               BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  author_id        BigInt?   @db.UnsignedBigInt
+  title            String    @db.VarChar(255)
+  slug             String    @unique(map: "blogs_slug_unique") @db.VarChar(255)
+  excerpt          String?   @db.Text
+  content          String    @db.LongText
+  cover_image      String?   @db.VarChar(255)
+  meta_title       String?   @db.VarChar(255)
+  meta_description String?   @db.VarChar(320)
+  keywords         String?   @db.VarChar(255)
+  is_published     Boolean   @default(false)
+  published_at     DateTime? @db.Timestamp(0)
+  view_count       BigInt    @default(0) @db.UnsignedBigInt
+  created_at       DateTime? @db.Timestamp(0)
+  updated_at       DateTime? @db.Timestamp(0)
+  users            User?     @relation(fields: [author_id], references: [id], onUpdate: Restrict, map: "blogs_author_id_foreign")
+
+  @@index([author_id], map: "blogs_author_id_foreign")
+  @@index([is_published], map: "blogs_is_published_index")
+  @@index([published_at], map: "blogs_published_at_index")
+}
+
+model cache {
+  key        String @id @db.VarChar(255)
+  value      String @db.MediumText
+  expiration Int
+}
+
+model cache_locks {
+  key        String @id @db.VarChar(255)
+  owner      String @db.VarChar(255)
+  expiration Int
+}
+
+model credit_packages {
+  id            BigInt     @id @default(autoincrement()) @db.UnsignedBigInt
+  name          String     @db.VarChar(255)
+  price_inr     Int
+  credits       Int
+  bonus_credits Int        @default(0)
+  is_popular    Boolean    @default(false)
+  is_active     Boolean    @default(true)
+  display_order Int        @default(0)
+  description   String?    @db.Text
+  created_at    DateTime?  @db.Timestamp(0)
+  updated_at    DateTime?  @db.Timestamp(0)
+  payments      payments[]
+}
+
+model field_visit_media {
+  id             BigInt                       @id @default(autoincrement()) @db.UnsignedBigInt
+  field_visit_id BigInt                       @db.UnsignedBigInt
+  media_type     field_visit_media_media_type @default(photo)
+  file_path      String                       @db.VarChar(500)
+  caption        String?                      @db.VarChar(255)
+  created_at     DateTime?                    @db.Timestamp(0)
+  updated_at     DateTime?                    @db.Timestamp(0)
+
+  @@index([field_visit_id], map: "idx_field_visit_media_visit")
+}
+
+model landmarks {
+  id                 BigInt               @id @default(autoincrement()) @db.UnsignedBigInt
+  city_id            BigInt               @db.UnsignedBigInt
+  locality_id        BigInt?              @db.UnsignedBigInt
+  name               String               @db.VarChar(255)
+  slug               String               @unique(map: "landmarks_slug_unique") @db.VarChar(255)
+  type               landmarks_type
+  latitude           Decimal?             @db.Decimal(10, 7)
+  longitude          Decimal?             @db.Decimal(10, 7)
+  description        String?              @db.Text
+  meta_title         String?              @db.VarChar(255)
+  meta_description   String?              @db.VarChar(320)
+  is_active          Boolean              @default(true)
+  display_order      Int                  @default(0)
+  view_count         BigInt               @default(0) @db.UnsignedBigInt
+  created_at         DateTime?            @db.Timestamp(0)
+  updated_at         DateTime?            @db.Timestamp(0)
+  cities             City                 @relation(fields: [city_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "landmarks_city_id_foreign")
+  localities         Locality?            @relation(fields: [locality_id], references: [id], onUpdate: Restrict, map: "landmarks_locality_id_foreign")
+  property_landmarks property_landmarks[]
+
+  @@index([city_id, is_active], map: "landmarks_city_id_is_active_index")
+  @@index([locality_id], map: "landmarks_locality_id_foreign")
+  @@index([type, is_active], map: "landmarks_type_is_active_index")
+}
+
+model lead_pricing {
+  id          BigInt                 @id @default(autoincrement()) @db.UnsignedBigInt
+  lead_type   lead_pricing_lead_type
+  credit_cost Int
+  is_active   Boolean                @default(true)
+  created_at  DateTime?              @db.Timestamp(0)
+  updated_at  DateTime?              @db.Timestamp(0)
+}
+
+model lead_unlocks {
+  id                  BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  owner_id            BigInt?   @db.UnsignedBigInt
+  lead_id             BigInt    @db.UnsignedBigInt
+  user_id             BigInt    @db.UnsignedBigInt
+  credits_spent       Int
+  lead_type_at_unlock String    @db.VarChar(255)
+  created_at          DateTime? @db.Timestamp(0)
+  updated_at          DateTime? @db.Timestamp(0)
+  leads               Lead      @relation(fields: [lead_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "lead_unlocks_lead_id_foreign")
+  users               User      @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "lead_unlocks_user_id_foreign")
+
+  @@unique([lead_id, user_id], map: "lead_unlocks_lead_id_user_id_unique")
+  @@index([lead_id], map: "lead_unlocks_lead_id_index")
+  @@index([user_id], map: "lead_unlocks_user_id_foreign")
+}
+
+model migrations {
+  id        Int    @id @default(autoincrement()) @db.UnsignedInt
+  migration String @db.VarChar(255)
+  batch     Int
+}
+
+model password_reset_tokens {
+  email      String    @id @db.VarChar(255)
+  token      String    @db.VarChar(255)
+  created_at DateTime? @db.Timestamp(0)
+}
+
+model payments {
+  id                  BigInt           @id @default(autoincrement()) @db.UnsignedBigInt
+  user_id             BigInt           @db.UnsignedBigInt
+  credit_package_id   BigInt?          @db.UnsignedBigInt
+  amount_inr          Int
+  credits_to_add      Int
+  razorpay_order_id   String           @unique(map: "payments_razorpay_order_id_unique") @db.VarChar(255)
+  razorpay_payment_id String?          @db.VarChar(255)
+  razorpay_signature  String?          @db.VarChar(255)
+  status              payments_status  @default(created)
+  payload             String?          @db.LongText
+  failure_reason      String?          @db.Text
+  created_at          DateTime?        @db.Timestamp(0)
+  updated_at          DateTime?        @db.Timestamp(0)
+  credit_packages     credit_packages? @relation(fields: [credit_package_id], references: [id], onUpdate: Restrict, map: "payments_credit_package_id_foreign")
+  users               User             @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "payments_user_id_foreign")
+
+  @@index([credit_package_id], map: "payments_credit_package_id_foreign")
+  @@index([status], map: "payments_status_index")
+  @@index([user_id, status], map: "payments_user_id_status_index")
+}
+
+model property_landmarks {
+  id          BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  property_id BigInt    @db.UnsignedBigInt
+  landmark_id BigInt    @db.UnsignedBigInt
+  distance_km Decimal   @db.Decimal(6, 2)
+  created_at  DateTime? @db.Timestamp(0)
+  updated_at  DateTime? @db.Timestamp(0)
+  landmarks   landmarks @relation(fields: [landmark_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "property_landmarks_landmark_id_foreign")
+  properties  Property  @relation(fields: [property_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "property_landmarks_property_id_foreign")
+
+  @@unique([property_id, landmark_id], map: "property_landmarks_property_id_landmark_id_unique")
+  @@index([landmark_id, distance_km], map: "property_landmarks_landmark_id_distance_km_index")
+}
+
+model reviews {
+  id            BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  property_id   BigInt    @db.UnsignedBigInt
+  user_id       BigInt?   @db.UnsignedBigInt
+  reviewer_name String    @db.VarChar(255)
+  rating        Int       @db.UnsignedTinyInt
+  comment       String?   @db.Text
+  is_approved   Boolean   @default(false)
+  created_at    DateTime? @db.Timestamp(0)
+  updated_at    DateTime? @db.Timestamp(0)
+  properties    Property  @relation(fields: [property_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "reviews_property_id_foreign")
+  users         User?     @relation(fields: [user_id], references: [id], onUpdate: Restrict, map: "reviews_user_id_foreign")
+
+  @@index([property_id], map: "reviews_property_id_foreign")
+  @@index([user_id], map: "reviews_user_id_foreign")
+}
+
+model seo_settings {
+  id               BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  page_key         String    @unique(map: "seo_settings_page_key_unique") @db.VarChar(100)
+  page_label       String    @db.VarChar(200)
+  meta_title       String?   @db.VarChar(255)
+  meta_description String?   @db.Text
+  meta_keywords    String?   @db.Text
+  og_title         String?   @db.VarChar(255)
+  og_description   String?   @db.Text
+  og_image         String?   @db.VarChar(500)
+  is_active        Boolean   @default(true)
+  updated_by       BigInt?   @db.UnsignedBigInt
+  created_at       DateTime? @db.Timestamp(0)
+  updated_at       DateTime? @db.Timestamp(0)
+}
+
+model sessions {
+  id            String  @id @db.VarChar(255)
+  user_id       BigInt? @db.UnsignedBigInt
+  ip_address    String? @db.VarChar(45)
+  user_agent    String? @db.Text
+  payload       String  @db.LongText
+  last_activity Int
+
+  @@index([last_activity], map: "sessions_last_activity_index")
+  @@index([user_id], map: "sessions_user_id_index")
+}
+
+model visits {
+  id                 BigInt         @id @default(autoincrement()) @db.UnsignedBigInt
+  lead_id            BigInt         @db.UnsignedBigInt
+  property_id        BigInt         @db.UnsignedBigInt
+  field_executive_id BigInt?        @db.UnsignedBigInt
+  scheduled_at       DateTime       @db.DateTime(0)
+  checked_in_at      DateTime?      @db.DateTime(0)
+  checked_out_at     DateTime?      @db.DateTime(0)
+  checkin_lat        Decimal?       @db.Decimal(10, 7)
+  checkin_lng        Decimal?       @db.Decimal(10, 7)
+  checkin_distance_m Int?
+  outcome            visits_outcome @default(pending)
+  token_amount       Decimal?       @db.Decimal(10, 2)
+  receipt_image      String?        @db.VarChar(255)
+  notes              String?        @db.Text
+  tenant_feedback    String?        @db.Text
+  rejection_reason   String?        @db.VarChar(255)
+  created_at         DateTime?      @db.Timestamp(0)
+  updated_at         DateTime?      @db.Timestamp(0)
+  users              User?          @relation(fields: [field_executive_id], references: [id], onUpdate: Restrict, map: "visits_field_executive_id_foreign")
+  leads              Lead           @relation(fields: [lead_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "visits_lead_id_foreign")
+  properties         Property       @relation(fields: [property_id], references: [id], onUpdate: Restrict, map: "visits_property_id_foreign")
+
+  @@index([field_executive_id], map: "visits_field_executive_id_foreign")
+  @@index([lead_id], map: "visits_lead_id_foreign")
+  @@index([outcome], map: "visits_outcome_index")
+  @@index([property_id], map: "visits_property_id_foreign")
+}
+
+model wallet_transactions {
+  id                                           BigInt                     @id @default(autoincrement()) @db.UnsignedBigInt
+  wallet_id                                    BigInt                     @db.UnsignedBigInt
+  user_id                                      BigInt                     @db.UnsignedBigInt
+  type                                         wallet_transactions_type
+  amount                                       Int
+  balance_after                                Int
+  source                                       wallet_transactions_source
+  lead_id                                      BigInt?                    @db.UnsignedBigInt
+  reference                                    String?                    @db.VarChar(255)
+  notes                                        String?                    @db.Text
+  actioned_by                                  BigInt?                    @db.UnsignedBigInt
+  created_at                                   DateTime?                  @db.Timestamp(0)
+  updated_at                                   DateTime?                  @db.Timestamp(0)
+  users_wallet_transactions_actioned_byTousers User?                      @relation("wallet_transactions_actioned_byTousers", fields: [actioned_by], references: [id], onUpdate: Restrict, map: "wallet_transactions_actioned_by_foreign")
+  leads                                        Lead?                      @relation(fields: [lead_id], references: [id], onUpdate: Restrict, map: "wallet_transactions_lead_id_foreign")
+  users_wallet_transactions_user_idTousers     User                       @relation("wallet_transactions_user_idTousers", fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "wallet_transactions_user_id_foreign")
+  wallets                                      wallets                    @relation(fields: [wallet_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "wallet_transactions_wallet_id_foreign")
+
+  @@index([actioned_by], map: "wallet_transactions_actioned_by_foreign")
+  @@index([lead_id], map: "wallet_transactions_lead_id_foreign")
+  @@index([user_id, created_at], map: "wallet_transactions_user_id_created_at_index")
+  @@index([wallet_id], map: "wallet_transactions_wallet_id_foreign")
+}
+
+model wallets {
+  id                  BigInt                @id @default(autoincrement()) @db.UnsignedBigInt
+  user_id             BigInt                @unique(map: "wallets_user_id_unique") @db.UnsignedBigInt
+  balance             Int                   @default(0)
+  lifetime_added      Int                   @default(0)
+  lifetime_spent      Int                   @default(0)
+  created_at          DateTime?             @db.Timestamp(0)
+  updated_at          DateTime?             @db.Timestamp(0)
+  wallet_transactions wallet_transactions[]
+  users               User                  @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "wallets_user_id_foreign")
+}
+
+model wishlists {
+  id          BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  user_id     BigInt    @db.UnsignedBigInt
+  property_id BigInt    @db.UnsignedBigInt
+  created_at  DateTime? @db.Timestamp(0)
+  updated_at  DateTime? @db.Timestamp(0)
+  properties  Property  @relation(fields: [property_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "wishlists_property_id_foreign")
+  users       User      @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: Restrict, map: "wishlists_user_id_foreign")
+
+  @@unique([user_id, property_id], map: "wishlists_user_id_property_id_unique")
+  @@index([property_id], map: "wishlists_property_id_foreign")
+}
+
+enum GenderType {
+  male
+  female
+  unisex
+}
+
+enum KycStatus {
+  pending
+  submitted
+  approved
+  rejected
+}
+
+enum TenantStatus {
+  active
+  notice_period
+  left
+  blacklisted
+}
+
+enum DocumentType {
+  aadhaar_front
+  aadhaar_back
+  pan
+  employment_id
+  student_id
+  address_proof
+  photo
+  other
+}
+
+enum BillStatus {
+  pending
+  partial
+  paid
+  overdue
+  cancelled
+}
+
+enum PaymentMethod {
+  cash
+  upi
+  bank_transfer
+  razorpay
+  phonepe
+  paytm
+  cheque
+  other
+}
+
+enum ComplaintCategory {
+  plumbing
+  electrical
+  wifi
+  housekeeping
+  food
+  furniture
+  security
+  ac
+  water
+  other
+}
+
+enum Priority {
+  low
+  medium
+  high
+  urgent
+}
+
+enum ComplaintStatus {
+  open
+  assigned
+  in_progress
+  resolved
+  closed
+  cancelled
+}
+
+enum RoomType {
+  single
+  double
+  triple
+  quad
+  quint
+  dorm
+}
+
+enum RoomStatus {
+  active
+  maintenance
+  closed
+}
+
+enum BedType {
+  single
+  bunk_top
+  bunk_bottom
+  double
+}
+
+enum BedStatus {
+  vacant
+  occupied
+  reserved
+  maintenance
+}
+
+enum AgreementStatus {
+  draft
+  sent
+  signed_tenant
+  signed_owner
+  active
+  expired
+  terminated
+  renewed
+}
+
+enum lead_pricing_lead_type {
+  direct
+  verified
+  converted
+  manual
+}
+
+enum agreement_signatures_signer_type {
+  tenant
+  owner
+  witness
+}
+
+enum complaint_media_media_type {
+  photo
+  video
+}
+
+enum field_visit_media_media_type {
+  photo
+  video
+}
+
+enum otp_verifications_identifier_type {
+  phone
+  email
+}
+
+enum wallet_transactions_type {
+  credit
+  debit
+}
+
+enum field_visits_visit_type {
+  verification
+  tenant_visit
+  photo_update
+  other
+}
+
+enum otp_verifications_purpose {
+  login
+  register
+  password_reset
+  phone_verify
+  email_verify
+}
+
+enum field_visits_status {
+  scheduled
+  in_progress
+  completed
+  cancelled
+}
+
+enum landmarks_type {
+  college
+  university
+  hospital
+  metro
+  office
+  mall
+  airport
+  railway
+}
+
+enum users_role {
+  admin
+  owner
+  telecaller
+  field_executive
+  seo_manager
+  guest
+}
+
+enum wallet_transactions_source {
+  admin_credit
+  admin_debit
+  purchase
+  lead_unlock
+  refund
+  bonus
+  expiry
+}
+
+enum payments_status {
+  created
+  paid
+  failed
+  refunded
+}
+
+enum properties_gender {
+  male
+  female
+  unisex
+}
+
+enum tenants_gender {
+  male
+  female
+  other
+}
+
+enum properties_property_type {
+  pg
+  hostel
+  coliving
+  flatmate
+}
+
+enum leads_preferred_gender {
+  male
+  female
+  unisex
+}
+
+enum visits_outcome {
+  pending
+  closed
+  rejected
+  revisit
+  no_show
+}
+
+enum leads_source {
+  website
+  whatsapp
+  meta_ads
+  google_ads
+  referral
+  walk_in
+  offline_campaign
+  tele_inbound
+  manual
+}
+
+enum leads_lead_type {
+  direct
+  verified
+  converted
+  manual
+}
+
+enum rent_agreements_terms_template {
+  delhi_standard
+  custom
+}
+
+enum leads_status {
+  new
+  contacted
+  interested
+  follow_up
+  visit_scheduled
+  visit_done
+  closed_won
+  closed_lost
+  junk
+}

@@ -1,0 +1,71 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* EXACT Pizi Laravel colors */
+    --cream: 254 252 246;          /* #fefcf6 */
+    --bg-page: 246 245 241;        /* #f6f5f1 - body bg */
+    --ink-950: 10 26 48;           /* #0a1a30 - darkest */
+    --ink-900: 15 39 72;           /* #0f2748 - sidebar bg */
+    --ink-800: 21 53 95;           /* #15355f */
+    --coral-50: 255 242 240;
+    --coral-400: 255 138 124;
+    --coral-500: 255 107 91;       /* #ff6b5b */
+    --coral-600: 237 78 61;        /* #ed4e3d */
+    --coral-700: 201 50 21;
+    --coral-900: 134 31 12;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    background: #f6f5f1;
+    color: rgb(var(--ink-950));
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1, h2, h3, .font-display {
+    font-family: 'Fraunces', Georgia, serif;
+    letter-spacing: -0.02em;
+  }
+
+  .font-display-italic {
+    font-family: 'Fraunces', Georgia, serif;
+    font-style: italic;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply inline-flex items-center justify-center px-4 py-2 rounded-lg font-semibold bg-coral-500 hover:bg-coral-600 text-white transition text-sm;
+  }
+
+  .btn-dark {
+    @apply inline-flex items-center justify-center px-4 py-2 rounded-lg font-semibold bg-ink-900 hover:bg-ink-950 text-cream transition text-sm;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center px-4 py-2 rounded-lg font-semibold bg-white hover:bg-cream text-ink-950 border border-ink-900/15 transition text-sm;
+  }
+
+  .input {
+    @apply w-full px-3 py-2 rounded-lg border border-ink-900/15 bg-white focus:border-coral-500 focus:outline-none focus:ring-2 focus:ring-coral-500/20 transition;
+  }
+
+  .label {
+    @apply block text-sm font-semibold text-ink-950 mb-1.5;
+  }
+
+  .card {
+    @apply bg-white rounded-2xl p-6 border border-ink-900/10;
+  }
+
+  .badge {
+    @apply inline-block px-2 py-1 rounded-full text-xs font-medium;
+  }
+}
