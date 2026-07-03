@@ -13,7 +13,6 @@ import { ComplaintsModule } from './modules/complaints/complaints.module';
 import { RoomsModule } from './modules/rooms/rooms.module';
 import { AgreementsModule } from './modules/agreements/agreements.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
-// import { UploadsModule } from './modules/uploads/uploads.module';
 import { HealthModule } from './modules/health/health.module';
 
 @Module({
@@ -36,7 +35,7 @@ import { HealthModule } from './modules/health/health.module';
     RoomsModule,
     AgreementsModule,
     NotificationsModule,
-    UploadsModule,
+    // UploadsModule,
     HealthModule,
   ],
 })
