@@ -14,9 +14,10 @@ async function bootstrap() {
   });
   console.log('process.env.JWT_SECRET =', process.env.JWT_SECRET);
 
+  const config = app.get(ConfigService);
+
   console.log('config JWT_SECRET =', config.get('JWT_SECRET'));
 
-  const config = app.get(ConfigService);
   console.log('JWT_SECRET =', config.get('JWT_SECRET'));
   console.log('DATABASE_URL =', config.get('DATABASE_URL'));
 
