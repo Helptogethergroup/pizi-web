@@ -1,8 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  output: 'standalone',
   reactStrictMode: false,
   eslint: {
-    // Lint locally with `npm run lint`; don't fail production builds on lint.
     ignoreDuringBuilds: true,
   },
   images: {
@@ -12,5 +12,4 @@ const nextConfig = {
     ],
   },
 };
-
 module.exports = nextConfig;
