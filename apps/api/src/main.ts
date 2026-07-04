@@ -9,12 +9,18 @@ import { TransformInterceptor } from './common/interceptors/transform.intercepto
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
+
     logger: ['error', 'warn', 'log', 'debug'],
   });
+  console.log('process.env.JWT_SECRET =', process.env.JWT_SECRET);
+
+  const config = app.get(ConfigService);
+
+  console.log('config JWT_SECRET =', config.get('JWT_SECRET'));
 
   const config = app.get(ConfigService);
   console.log('JWT_SECRET =', config.get('JWT_SECRET'));
-console.log('DATABASE_URL =', config.get('DATABASE_URL'));
+  console.log('DATABASE_URL =', config.get('DATABASE_URL'));
 
 
   const port = config.get<number>('PORT', 4000);
